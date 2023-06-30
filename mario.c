@@ -10,16 +10,6 @@
 #include "sokol_time.h"
 #include "sokol_debugtext.h"
 
-
-
-struct container{
-    item container_items[8];
-    int container_id;
-    float x;
-    float y;
-    bool open;
-};
-
 #define SCREEN_WIDTH 1200
 #define SCREEN_HEIGHT 900
 bool mouse;
