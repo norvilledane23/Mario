@@ -14,18 +14,16 @@
 #define SCREEN_HEIGHT 900
 bool mouse;
 
-int left_pressed = 0;
-int right_pressed = 0;
-int up_pressed = 0;
-int down_pressed = 0;
-
 // Coordinate variables
 float mouse_x;
 float mouse_y;
 float player_x = 60;
 float player_y = 180;
+float vx = 0;
+float vy = 0;
 
 uint64_t frame_start_time;
+gx_sprite player;
 
 void init(void) {
     sg_setup(&(sg_desc) {
@@ -66,29 +64,17 @@ void init(void) {
 void frame(void) {
     // Animation FPS Calculations
     int target_fps = 48;
-    uint64_t frame_duration = stm_since(frame_start_time); // Duration of the frame since sprite animation started
-    int frame_duration_ms = stm_ms(frame_duration); // Converting frame duration to ms
+    uint64_t frame_duration = stm_since(frame_start_time);
+    int frame_duration_ms = stm_ms(frame_duration);
     int target_frame_duration_ms = 1000 / target_fps;
-    int need_to_sleep_ms = target_frame_duration_ms - frame_duration_ms; // For determining whether the frame played too fast
-    
-    if (right_pressed == 1) { // right
-        player_x += right_border_check(player_x, player.width / 2);
-    }
+    int need_to_sleep_ms = target_frame_duration_ms - frame_duration_ms;
 
-    if (left_pressed == 1) { // left
-        player_x -= left_border_check(player_x, player.width / 2);;
-    }
-
-    if (down_pressed == 1) { // down
-        player_y += bottom_border_check(player_y, player.height / 2);
-    }
-
-    if (up_pressed == 1) { // up
-        player_y -= top_border_check(player_y, player.height / 2);
-    }
+    player_x += vx;
+    player_y += vy;
 
     gx_begin_drawing();
 
+    gx_draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (sg_color) { 0.4f, 1.0f, 0.6f, 0.75f });
     gx_draw_sprite(player_x - (player.width / 2), player_y - (player.height / 2), &player);
 
     sdtx_draw();
@@ -101,7 +87,6 @@ void cleanup(void) {
 }
 
 static void event(const sapp_event* ev) {
-    int j;
     switch (ev->type) {
     case SAPP_EVENTTYPE_MOUSE_DOWN:
         break;
@@ -118,51 +103,29 @@ static void event(const sapp_event* ev) {
     case SAPP_EVENTTYPE_KEY_DOWN:
         switch (ev->key_code) {
         case SAPP_KEYCODE_RIGHT:
-            right_pressed = 1;
+            vx += 0.1;
             break;
 
         case SAPP_KEYCODE_LEFT:
-            left_pressed = 1; 
+            vx -= 0.1;
             break;
 
         case SAPP_KEYCODE_DOWN:
-            down_pressed = 1;
+            vy += 0.1;
             break;
 
         case SAPP_KEYCODE_UP:
-            up_pressed = 1;
+            vy -= 0.1;
             break;
-        
+
         default:
             break;
         }
         break;
-
-    default:
-        break;
-    }
 
     case SAPP_EVENTTYPE_KEY_UP:
-        switch (ev->key_code) {
-        case SAPP_KEYCODE_RIGHT:
-            right_pressed = 0;
-            break;
-
-        case SAPP_KEYCODE_LEFT:
-            left_pressed = 0; 
-            break;
-
-        case SAPP_KEYCODE_DOWN:
-            down_pressed = 0;
-            break;
-
-        case SAPP_KEYCODE_UP:
-            up_pressed = 0;
-            break;
-        
-        default:
-            break;
-        }
+        vx = 0;
+        vy = 0;
         break;
 
     default:
