@@ -12,13 +12,19 @@
 
 #define SCREEN_WIDTH 1200
 #define SCREEN_HEIGHT 900
+#define BOTTOM_OF_SCREEN 900
 bool mouse;
+
+// Keyboard variables
+int btn_left = 0;
+int btn_right = 0;
+int btn_up = 0;
 
 // Coordinate variables
 float mouse_x;
 float mouse_y;
-float player_x = 60;
-float player_y = 180;
+float player_x = 24;
+float player_y = BOTTOM_OF_SCREEN;
 float vx = 0;
 float vy = 0;
 
@@ -55,19 +61,60 @@ void init(void) {
 
     gx_setup();
     stm_setup();
-    sapp_show_mouse(false); // Remove original computer mouse cursor
+    //sapp_show_mouse(false); // Remove original computer mouse cursor
 
     // Entity sprites
     player = gx_make_sprite("player.png");
 }
 
+void tick(void) {
+    if (btn_right == 1) {
+        vx += 0.1;
+    }
+
+    if (btn_left == 1) {
+        vx -= 0.1;
+    }
+
+    if (btn_up == 1) {
+        if (player_y == BOTTOM_OF_SCREEN)
+        {
+            vy -= 3;
+        }
+    }
+
+    // Screen borders
+    if (player_x < 24) {
+        player_x = 24;
+        vx = 0;
+    }
+
+    if (player_x > (SCREEN_WIDTH - 24)) {
+        player_x = SCREEN_WIDTH - 24;
+        vx = 0;
+    }
+
+    if (player_y > BOTTOM_OF_SCREEN) {
+        player_y = BOTTOM_OF_SCREEN;
+        vy = 0;
+    }
+
+    // Gravity
+    if (player_y < BOTTOM_OF_SCREEN) {
+        vy += 0.02;
+    }
+
+}
+
 void frame(void) {
     // Animation FPS Calculations
-    int target_fps = 48;
+    int target_fps = 30;
     uint64_t frame_duration = stm_since(frame_start_time);
     int frame_duration_ms = stm_ms(frame_duration);
     int target_frame_duration_ms = 1000 / target_fps;
     int need_to_sleep_ms = target_frame_duration_ms - frame_duration_ms;
+
+    tick();
 
     player_x += vx;
     player_y += vy;
@@ -75,7 +122,7 @@ void frame(void) {
     gx_begin_drawing();
 
     gx_draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (sg_color) { 0.4f, 1.0f, 0.6f, 0.75f });
-    gx_draw_sprite(player_x - (player.width / 2), player_y - (player.height / 2), &player);
+    gx_draw_sprite(player_x - (player.width / 2), player_y - 120, &player);
 
     sdtx_draw();
     gx_end_drawing();
@@ -103,19 +150,15 @@ static void event(const sapp_event* ev) {
     case SAPP_EVENTTYPE_KEY_DOWN:
         switch (ev->key_code) {
         case SAPP_KEYCODE_RIGHT:
-            vx += 0.1;
+            btn_right = 1;
             break;
 
         case SAPP_KEYCODE_LEFT:
-            vx -= 0.1;
-            break;
-
-        case SAPP_KEYCODE_DOWN:
-            vy += 0.1;
+            btn_left = 1;
             break;
 
         case SAPP_KEYCODE_UP:
-            vy -= 0.1;
+            btn_up = 1;
             break;
 
         default:
@@ -124,8 +167,22 @@ static void event(const sapp_event* ev) {
         break;
 
     case SAPP_EVENTTYPE_KEY_UP:
-        vx = 0;
-        vy = 0;
+        switch (ev->key_code) {
+        case SAPP_KEYCODE_RIGHT:
+            btn_right = 0;
+            break;
+
+        case SAPP_KEYCODE_LEFT:
+            btn_left = 0;
+            break;
+
+        case SAPP_KEYCODE_UP:
+            btn_up = 0;
+            break;
+
+        default:
+            break;
+        }
         break;
 
     default:
