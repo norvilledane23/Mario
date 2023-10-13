@@ -10,10 +10,19 @@
 #include "sokol_time.h"
 #include "sokol_debugtext.h"
 
+struct platform {
+    int x1, y1, x2, y2;
+};
+
+// Structure for player (add points for their left and right foot)
+// Make the screen a box
+
 #define SCREEN_WIDTH 1200
 #define SCREEN_HEIGHT 900
 #define BOTTOM_OF_SCREEN 900
 bool mouse;
+bool inside_platform;
+bool player_on_ground;
 
 // Keyboard variables
 int btn_left = 0;
@@ -30,6 +39,8 @@ float vy = 0;
 
 uint64_t frame_start_time;
 gx_sprite player;
+gx_sprite platform;
+struct platform platform_1;
 
 void init(void) {
     sg_setup(&(sg_desc) {
@@ -65,9 +76,19 @@ void init(void) {
 
     // Entity sprites
     player = gx_make_sprite("player.png");
+    platform = gx_make_sprite("platform_1.png");
+
+    platform_1.x1 = 120;
+    platform_1.y1 = BOTTOM_OF_SCREEN - 60 - 16;
+    platform_1.x2 = 120 + 96;
+    platform_1.y2 = BOTTOM_OF_SCREEN - 60;
+    player_on_ground = true;
+    inside_platform = false;
 }
 
 void tick(void) {
+    player_on_ground = false;
+
     if (btn_right == 1) {
         vx += 0.1;
     }
@@ -77,13 +98,15 @@ void tick(void) {
     }
 
     if (btn_up == 1) {
-        if (player_y == BOTTOM_OF_SCREEN)
+        if (player_on_ground)
         {
-            vy -= 3;
+            vy -= 20;
+            //player_on_ground = false;
         }
     }
 
     // Screen borders
+    // Horizontal border
     if (player_x < 24) {
         player_x = 24;
         vx = 0;
@@ -94,16 +117,34 @@ void tick(void) {
         vx = 0;
     }
 
+    // Vertical border
     if (player_y > BOTTOM_OF_SCREEN) {
         player_y = BOTTOM_OF_SCREEN;
-        vy = 0;
+        player_on_ground = true;
+        if (vy > 0) {
+            vy = 0;
+        }
     }
 
     // Gravity
-    if (player_y < BOTTOM_OF_SCREEN) {
-        vy += 0.02;
+    if (!player_on_ground) {
+        vy += 0.8;
     }
 
+    vx *= 0.6;
+}
+
+void platform_collision(void) {
+    //player_on_ground = false;
+
+    if (player_x > platform_1.x1 && player_x < platform_1.x2 && player_y > platform_1.y1 && player_y < platform_1.y2) {
+        inside_platform = true;
+    }
+
+    if (inside_platform) {
+        player_y = platform_1.y1;
+        //player_on_ground = true;
+    }
 }
 
 void frame(void) {
@@ -115,6 +156,8 @@ void frame(void) {
     int need_to_sleep_ms = target_frame_duration_ms - frame_duration_ms;
 
     tick();
+    platform_collision();
+    
 
     player_x += vx;
     player_y += vy;
@@ -122,6 +165,7 @@ void frame(void) {
     gx_begin_drawing();
 
     gx_draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (sg_color) { 0.4f, 1.0f, 0.6f, 0.75f });
+    gx_draw_sprite(platform_1.x1, platform_1.y1, &platform);
     gx_draw_sprite(player_x - (player.width / 2), player_y - 120, &player);
 
     sdtx_draw();
